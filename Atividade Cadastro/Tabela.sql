@@ -107,11 +107,7 @@ CREATE TABLE Dependente(
     criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_dependente PRIMARY KEY (dependente_id),
     CONSTRAINT fk_dependente_pessoa FOREIGN KEY (dependente_id) REFERENCES Pessoa(pessoa_id),
-    CONSTRAINT fk_dependente_titular FOREIGN KEY (titular_id) REFERENCES Pessoa(pessoa_id),
-    CONSTRAINT chk_dependente_tipo CHECK (
-        (SELECT tipo FROM Pessoa WHERE pessoa_id = dependente_id) = 'Dependente' AND
-        (SELECT tipo FROM Pessoa WHERE pessoa_id = titular_id) = 'Titular'
-    )
+    CONSTRAINT fk_dependente_titular FOREIGN KEY (titular_id) REFERENCES Pessoa(pessoa_id)
 );
 
 -- View para CPF formatado
@@ -125,3 +121,22 @@ SELECT
            SUBSTRING(cpf, 7, 3), '-', 
            SUBSTRING(cpf, 10, 2)) AS cpf_formatado
 FROM Pessoa;
+
+-- Trigger para validação antes de INSERT
+DELIMITER //
+CREATE TRIGGER trg_valida_dependente_insert
+BEFORE INSERT ON Dependente
+FOR EACH ROW
+BEGIN
+    IF (SELECT tipo FROM Pessoa WHERE pessoa_id = NEW.dependente_id) != 'Dependente' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O dependente deve ser do tipo "Dependente"';
+    END IF;
+    
+    IF (SELECT tipo FROM Pessoa WHERE pessoa_id = NEW.titular_id) != 'Titular' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O titular deve ser do tipo "Titular"';
+    END IF;
+END//
+DELIMITER ;
+ela mandou isso
